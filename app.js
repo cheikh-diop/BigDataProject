@@ -1,9 +1,11 @@
+
 var express = require('express');
 var bodyParser = require('body-parser');
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cors = require('cors');
+var hbase = require('hbase');
 
 
 var app = express();
@@ -21,8 +23,20 @@ app.use(bodyParser.urlencoded({limit: '50mb'}));
 const port=process.env.PORT || 8000;
 
 
+app.get('/hello', function(req,res) {
+  var client = new hbase.Client({
+    host: 'beetlejuice',
+    port: 9000
+});
+client.version( function( error, version ){
+  console.log( version );
+} );  
+  
+  res.end(JSON.stringify({message: 'Hello ' }));
+})
 
 app.get('*', (req, res) => {
+  
   res.sendFile(path.join(__dirname, 'front/index.html'));
 });
 
@@ -36,5 +50,9 @@ app.use(function (err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+
+
+
 
 module.exports = app;

@@ -1,18 +1,18 @@
 <!--Page Principale Programme !-->
-
+<!-- Mise en Page HTML !-->
 <!doctype html>
 <html lang="en">
 <head>
 
 <!-- Chargement Css OPENLayers !-->	
   <link rel="stylesheet" href="leaflet/leaflet.css" type="text/css">
-  <!-- Chargement JavaScript OPENLayers !-->	
+  <!-- Chargement JavaScript des cartes Google  !-->	
 
   <style>
   #map {
   	
     height: 800px;
-    width:  1800px;
+    width:  800px;
   }
   </style>
   <title> leaflet </title>
@@ -22,13 +22,338 @@
   <h1>Ma Map</h1>
   <div id="map"></div>
   <script type="text/javascript">
-var map = L.map('map').setView([37.8, -96], 4);
+  
 
-L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
+var street_url="http://{s}.tile.osm.org/{z}/{x}/{y}.png";
 
-  init();
+    streets   = L.tileLayer(street_url);
+
+
+var map = L.map('map', {
+    center: [46.61171, -10.37109],
+    zoom: 5,
+    layers: [streets]
+});
+
+
+
+
+
+
+var sFeatures = [{
+
+    "type": "Feature",
+    "properties": {
+        "name": "Coors Field",
+        "show_on_map": true,
+        "xlevel": "-8"
+    },
+    "geometry": {
+        "type": "Point",
+        "coordinates": ["-10.37109",46.61171 ]
+        
+    }
+}, {
+    "type": "Feature",
+    "properties": {
+        "name": "Busch Field",
+        "show_on_map": true,
+        "xlevel": "-0.06"
+    },
+    "geometry": {
+        "type": "Point",
+        "coordinates": ["-12.37109",55.61171 ]
+        
+    }
+}];
+ 
+ // Recuperation des donnees PHP en JavaScript
+//var sFeatures=<?php echo $somefeatures; ?>;
+
+ // Fonction qui gere l'echelle des couleurs 
+
+function getColor(d) {
+    return 	d >= 0    ? '#FFFF00' : // jaune
+    		d < 0     && d >= -0.02  ? '#00FF00' :
+           	d < -0.02 && d >= -0.05  ? '#00BF3F' :    // vert claire
+           	d < -0.05 && d >= -0.07  ? '#007F7F' :    //vert menthe
+           	d < -0.07 && d >= -0.1   ? '#003FBF' :   // Bleu degrade
+           	d < -0.1   ? '0000CC' : 				// BLEU 
+           
+                      '#FFEDA0';
+}
+
+// fonction qui gere l'apparence des points 
+
+function mark(feature) {
+  // body...
+  var geojsonMarkerOptions = {
+    radius: 15.5,
+    fillColor:getColor(feature.properties.xelev),
+    color: getColor(feature.properties.xelev),
+    weight: 1,
+    opacity: 1,
+    fillOpacity: 0.8
+};
+
+return geojsonMarkerOptions; 
+
+}
+
+/*
+function resetHighlight(e) {
+
+    geojson.resetStyle(e.target);
+
+}
+
+function zoomToFeature(e) {
+    map.fitBounds(e.target.getBounds());
+}
+
+function highlightFeature(e) {
+    var layer = e.target;
+
+    layer.setStyle({
+        weight: 5,
+        //color: '#666',
+        dashArray: '',
+        fillOpacity: 0.7
+    });
+
+    if (!L.Browser.ie && !L.Browser.opera) {
+        layer.bringToFront();
+    }
+}
+
+var baseMaps = {
+     
+    "Streets": streets
+};
+
+*/
+function onEachFeature(feature, layer) {
+    // does this feature have a property named popupContent?
+
+    var z=map.getZoom();
+
+    if (feature.properties && feature.properties.xelev) {
+
+       layer.bindPopup("Le niveau d'eau a ce point est de "+feature.properties.xelev);
+    
+    }
+
+   
+   
+
+    /*layer.on({
+        mouseover: highlightFeature,
+        mouseout: resetHighlight,
+        click: zoomToFeature
+    });  */
+ }
+
+// Extraction des points afficher initialement .
+
+    var point=L.geoJson(sFeatures, {
+
+
+        
+        pointToLayer: function (feature, latlng) {
+
+
+            return L.circleMarker(latlng, mark(feature));
+        	
+        },
+
+        onEachFeature: onEachFeature
+         
+    });
+
+
+
+
+//L.control.layers(baseMaps).addTo(map);
+
+// Clique sur la carte
+
+function onMapClick(e) {
+	var currentZoom=map.getZoom();
+	 var center=map.getBounds();
+	 var popup = L.popup()
+    .setLatLng(e.latlng)
+    .setContent("La zone clique "+e.latlng.lat+" currentZoom "+currentZoom)
+    .openOn(map);
+
+   
+}
+
+/*
+function states(e){
+	var currentZoom=map.getZoom();
+
+map.on("zoomstart", function (e) { 
+
+var z=map.getZoom();
+
+
+
+}
+
+
+
+}
+
+map.on("zoomstart", function (e) { 
+
+var z=map.getZoom();
+
+
+
+}
+
+
+);
+*/
+var layerGroup = new L.LayerGroup();
+var  point1;
+var point2;
+var i=0;
+var ens=[];
+point.addTo(map);
+//layerGroup.addLayer(point);
+//layerGroup.removeLayers();
+
+function create(z){
+
+    point1=L.geoJson(sFeatures, {
+
+
+        
+        pointToLayer: function (feature, latlng) {
+
+
+            return L.circleMarker(latlng, mark(feature));
+        	
+        },
+
+        onEachFeature: onEachFeature,
+
+        filter: function(feature, layer) {
+        	var long=feature.geometry.coordinates[0];
+        	var lat=feature.geometry.coordinates[1];
+        	var qo=1/100;
+        	if (z>=6 &&long <east-(east*qo) && long>west+(west*qo) && lat<north-(north*qo) && lat>south+(south*qo)){
+        	 
+        return true;
+
+        }
+        else 
+
+        	return false;
+    }
+
+         
+    });
+
+}
+
+function clear(x) {
+  map.removeLayer(x);
+}
+
+
+// Reponse a un zoom
+map.on("zoomstart", 
+	function (e) { 
+		
+		console.log(map.getZoom());
+		console.log(i);
+		
+		var z=map.getZoom();
+if (z>=6) {
+	i=i+1;
+		 var bound=map.getBounds();
+        	north=bound.getNorth();
+        	south=bound.getSouth();
+        	west=bound.getWest();
+        	east=bound.getEast();
+            
+
+          point1=L.geoJson(sFeatures, {
+
+
+        
+        pointToLayer: function (feature, latlng) {
+
+
+            return L.circleMarker(latlng, mark(feature));
+        	
+        },
+
+        onEachFeature: onEachFeature,
+
+        filter: function(feature, layer) {
+        	var long=feature.geometry.coordinates[0];
+        	var lat=feature.geometry.coordinates[1];
+        	var qo=5/100;
+        	if (long <east-(east*qo) && long>west+(west*qo) && lat<north-(north*qo) && lat>south+(south*qo)){
+        	 
+        return true;
+
+        }
+        else 
+
+        	return false;
+    }
+
+         
+    });    
+		
+ 
+
+layerGroup.addLayer(point1);
+
+layerGroup.addTo(map);
+ens[i]=point1;
+
+
+}
+if(z<=6) {
+
+//console.log(layerGroup);
+map.removeLayer(layerGroup);
+//layerGroup.clearLayers();
+//ayerGroup.addLayer(point);
+//layerGroup.addTo(map);
+	
+	
+
+		}
+		
+
+	
+	 }
+
+
+	);
+
+
+
+
+function zoomToFeature(e) { 
+   
+   var bound=map.getBounds();
+        	north=bound.getNorth();
+        	south=bound.getSouth();
+        	west=bound.getWest();
+        	east=bound.getEast();
+            //if (true) {
+				  alert(latlng.long);
+			//		}
+					
+}
+//map.on('click', onMapClick);
 
 
   </script>
